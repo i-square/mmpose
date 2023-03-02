@@ -110,12 +110,12 @@ class TopdownAffine(BaseTransform):
         if isinstance(results['img'], list):
             results['img'] = [
                 cv2.warpAffine(
-                    img, warp_mat, warp_size, flags=cv2.INTER_LINEAR)
+                    img, warp_mat, warp_size, flags=cv2.INTER_NEAREST)
                 for img in results['img']
             ]
         else:
             results['img'] = cv2.warpAffine(
-                results['img'], warp_mat, warp_size, flags=cv2.INTER_LINEAR)
+                results['img'], warp_mat, warp_size, flags=cv2.INTER_NEAREST)
 
         if results.get('keypoints', None) is not None:
             transformed_keypoints = results['keypoints'].copy()
