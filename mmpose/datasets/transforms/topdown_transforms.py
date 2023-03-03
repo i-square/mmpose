@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple
 
 import cv2
 import numpy as np
+import mmcv
 from mmcv.transforms import BaseTransform
 from mmengine import is_seq_of
 
@@ -123,6 +124,92 @@ class TopdownAffine(BaseTransform):
             transformed_keypoints[..., :2] = cv2.transform(
                 results['keypoints'][..., :2], warp_mat)
             results['transformed_keypoints'] = transformed_keypoints
+
+        results['input_size'] = (w, h)
+
+        return results
+
+    def __repr__(self) -> str:
+        """print the basic information of the transform.
+
+        Returns:
+            str: Formatted string.
+        """
+        repr_str = self.__class__.__name__
+        repr_str += f'(input_size={self.input_size}, '
+        repr_str += f'use_udp={self.use_udp})'
+        return repr_str
+
+
+@TRANSFORMS.register_module()
+class TopdownCropResize(BaseTransform):
+    """Get the bbox image as the model input by mmcv crop and resize.
+
+    Required Keys:
+
+        - img
+        - bbox
+        - bbox_scale
+
+    Modified Keys:
+
+        - img
+        - input_size
+
+    Added Keys:
+
+        - input_size
+        - transformed_keypoints
+
+    Args:
+        input_size (Tuple[int, int]): The input image size of the model in
+            [w, h]. The bbox region will be cropped and resize to `input_size`
+        interpolation (str): Interpolation method, accepted values are
+            "nearest", "bilinear", "bicubic", "area", "lanczos" for 'cv2'
+            backend, "nearest", "bilinear" for 'pillow' backend. Defaults
+            to 'bilinear'.
+
+    """
+
+    def __init__(self,
+                 input_size: Tuple[int, int],
+                 interpolation='bilinear') -> None:
+        super().__init__()
+
+        assert is_seq_of(input_size, int) and len(input_size) == 2, (
+            f'Invalid input_size {input_size}')
+
+        self.input_size = input_size
+        self.interpolation = interpolation
+
+
+    def transform(self, results: Dict) -> Optional[dict]:
+        """The transform function of :class:`TopdownAffine`.
+
+        See ``transform()`` method of :class:`BaseTransform` for details.
+
+        Args:
+            results (dict): The result dict
+
+        Returns:
+            dict: The result dict.
+        """
+
+        # TODO: support multi-instance
+        assert results['bbox_center'].shape[0] == 1, (
+            'Top-down heatmap only supports single instance. Got invalid '
+            f'shape of bbox_center {results["bbox_center"].shape}.')
+
+
+        w, h = self.input_size
+        warp_size = (int(w), int(h))
+
+        bbox = results['bbox'][0]
+        bbox_scale = results['bbox_scale'][0]
+        scale = bbox_scale[0]/(bbox[2]-bbox[0])
+
+        results['img'] = mmcv.imcrop(results['img'], bbox, scale)
+        results['img'] = mmcv.imresize(results['img'], warp_size, interpolation=self.interpolation)
 
         results['input_size'] = (w, h)
 
