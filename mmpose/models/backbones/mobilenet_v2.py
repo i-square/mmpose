@@ -320,6 +320,7 @@ class MobileNetV21(BaseBackbone):
 
 
     def __init__(self,
+                 conv1_in_channels=3,
                  widen_factor=1.,
                  out_indices=(7, ),
                  frozen_stages=-1,
@@ -360,7 +361,7 @@ class MobileNetV21(BaseBackbone):
         self.in_channels = make_divisible(32 * widen_factor, 8)
 
         self.conv1 = ConvModule(
-            in_channels=3,
+            in_channels=conv1_in_channels,
             out_channels=self.in_channels,
             kernel_size=3,
             stride=2,

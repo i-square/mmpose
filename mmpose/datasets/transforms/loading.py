@@ -39,6 +39,15 @@ class LoadImage(LoadImageFromFile):
             not existent. Defaults to False.
     """
 
+    def __init__(self,
+                 is_color_type: bool = True,
+                 file_client_args: Optional[dict] = None,
+                 color_type: str = 'color',
+                 ):
+
+        super().__init__(file_client_args, color_type)
+        self.is_color_type = is_color_type
+
     def transform(self, results: dict) -> Optional[dict]:
         """The transform function of :class:`LoadImage`.
 
@@ -63,11 +72,12 @@ class LoadImage(LoadImageFromFile):
             results['img_shape'] = img.shape[:2]
             results['ori_shape'] = img.shape[:2]
 
-        img = results['img']
-        assert img.ndim == 2 or img.ndim == 3
-        if img.ndim == 2:
-            img = np.repeat(img[..., None], 3, axis=-1)
-        elif img.shape[2] == 1:
-            img = np.repeat(img, 3, axis=-1)
-        results['img'] = img
+        if self.is_color_type:
+            img = results['img']
+            assert img.ndim == 2 or img.ndim == 3
+            if img.ndim == 2:
+                img = np.repeat(img[..., None], 3, axis=-1)
+            elif img.shape[2] == 1:
+                img = np.repeat(img, 3, axis=-1)
+            results['img'] = img
         return results
